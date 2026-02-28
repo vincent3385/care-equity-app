@@ -229,20 +229,57 @@ with left_header:
     st.title("🧬 Care Equity Intelligence")
     st.caption("Balancing caregiving responsibilities automatically — with visible fairness, simple scheduling, and senior-friendly help requests.")
 
+def gini(values):
+    """Gini coefficient for non-negative values (0=perfectly even, 1=max inequality)."""
+    vals = [max(0, float(v)) for v in values if v is not None]
+    if len(vals) == 0:
+        return 0.0
+    total = sum(vals)
+    if total == 0:
+        return 0.0
+    vals.sort()
+    n = len(vals)
+    cum = 0.0
+    for i, v in enumerate(vals, start=1):
+        cum += i * v
+    return (2 * cum) / (n * total) - (n + 1) / n
+
+
 with right_header:
     df = tasks_df()
-    total_mins = max(df["mins"].sum(), 1)
-    vincent_mins = df.loc[df["member"] == "Vincent", "mins"].sum()
-    vincent_share = int((vincent_mins / total_mins) * 100)
 
-    # Quick metrics
+    # only consider assigned work for "balance"
+    assigned = df[df["member"] != "Unassigned"].copy()
+
+    total_mins = max(int(assigned["mins"].sum()), 1)
+
+    # minutes per person
+    mins_by_member = (
+        assigned.groupby("member", as_index=False)["mins"].sum().sort_values("mins", ascending=False)
+    )
+
+    top_member = mins_by_member.iloc[0]["member"] if not mins_by_member.empty else "—"
+    top_share = int((mins_by_member.iloc[0]["mins"] / total_mins) * 100) if not mins_by_member.empty else 0
+
+    # Balance Index: 100 is best (even split), 0 is worst
+    g = gini(mins_by_member["mins"].tolist() if not mins_by_member.empty else [0])
+    balance_index = int(round(100 * (1 - g)))
+
+    open_tasks = int((df["status"] != "Done").sum())
+
     m1, m2, m3 = st.columns(3)
     with m1:
+        # if you want, you can replace this later with balance_index or a combined score
         st.metric("Equity Score", "82/100", delta="+4%")
+        st.caption("Prototype score (replace with the final rubric).")
+
     with m2:
-        st.metric("Vincent Load", f"{vincent_share}%", delta="High Load" if vincent_share >= 70 else "OK", delta_color="inverse" if vincent_share >= 70 else "normal")
+        st.metric("Workload Share", f"{top_share}%", delta=f"Top: {top_member}")
+        st.caption("Percent of assigned minutes carried by one person.")
+
     with m3:
-        st.metric("Open Tasks", int((df["status"] != "Done").sum()))
+        st.metric("Balance Index", f"{balance_index}/100", delta="More even is better")
+        st.caption("Based on distribution of assigned minutes.")
 
 st.divider()
 
@@ -309,7 +346,7 @@ with app_col:
                             f'<div style="opacity:0.75; font-size:0.9rem;">{m["id"]}</div>'
                             f'</div>', unsafe_allow_html=True)
 
-        st.markdown("### Workload overview")
+        st.markdown("### Workload minutes by member")
         df = tasks_df()
         grp = df.groupby("member", as_index=False)["mins"].sum().sort_values("mins", ascending=False)
         st.bar_chart(grp.set_index("member"))
