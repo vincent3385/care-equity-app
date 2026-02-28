@@ -1,0 +1,36 @@
+{
+  "family_name": "My Family",
+  "members": [
+    {
+      "id": "m1",
+      "name": "You"
+    },
+    {
+      "id": "m2",
+      "name": "Sibling"
+    }
+  ],
+  "availability": {
+    "m1": {
+      "2026-W09": 13
+    },
+    "m2": {
+      "2026-W09": 13
+    }
+  },
+  "tasks": [
+    {
+      "id": "t1",
+      "title": "hi",
+      "due_date": "2026-02-19",
+      "category": "Medical",
+      "est_minutes": 30,
+      "assigned_to": "m1",
+      "status": "todo",
+      "created_at": "2026-02-28T08:14:40Z",
+      "completed_at": null,
+      "actual_minutes": null,
+      "financial_amount": null
+    }
+  ]
+}
